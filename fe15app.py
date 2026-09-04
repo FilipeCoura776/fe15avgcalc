@@ -17,7 +17,6 @@ class MainWindow(QMainWindow):
     self.ui = Ui_MainWindow()
     self.ui.setupUi(self)
 
-    # A partir daqui, você aciona e manipula seus elementos da tela via self.ui
     # Exemplo de conexão de evento e alteração de texto:
     # self.ui.meuBotao.clicked.connect(self.minha_funcao)
     self.ui.btnCalcular.clicked.connect(self.calcular)
@@ -25,7 +24,7 @@ class MainWindow(QMainWindow):
     if self.ui.cbbPersonagem.count() > 0:
       self._on_personagem_changed(self.ui.cbbPersonagem.currentText())
 
-  # 1. Tentar conexão com o banco de dados SQLite
+  # Conexão com o banco de dados SQLite
     try:
       self.con, self.cur = banco.conectar()
     except Exception as e:
@@ -36,18 +35,21 @@ class MainWindow(QMainWindow):
       )
       sys.exit(1)
 
-    # 2. Conectar os sinais dos componentes da interface às funções
     self.ui.cbbPersonagem.currentTextChanged.connect(
         self._on_personagem_changed
     )
 
+    self.ui.cbbClasse.currentTextChanged.connect(
+        self._on_classe_changed
+    )
 
+    self.ui.spbLevel.textChanged.connect(
+      self._on_level_changed
+    )
 
-    # 3. Carregar os personagens cadastrados no banco
     self._load_characters()
 
   def _load_characters(self):
-    """Carrega a lista de personagens cadastrados no banco de dados na ComboBox."""
     try:
       self.cur.execute("SELECT name FROM characters ORDER BY name")
       # O fetchall retorna as linhas. Adaptado conforme o seu banco (dicionário/Row ou tupla)
@@ -68,6 +70,8 @@ class MainWindow(QMainWindow):
           self, "Erro SQL", f"Erro ao buscar personagens:\n{e}"
       )
 
+
+  # TROCA DE PERSONAGEM
   def _on_personagem_changed(self, selected_char):
     """Atualiza as classes permitidas no cbbClasse de acordo com o personagem selecionado."""
     if not selected_char:
@@ -77,7 +81,7 @@ class MainWindow(QMainWindow):
     try:
       caminho_recurso = f":/portraits/{selected_char}.png"
 
-      self.ui.widget.setStyleSheet(f"""
+      self.ui.portrait.setStyleSheet(f"""
             border-image: url({caminho_recurso}) 0 0 0 0 stretch stretch;
             background-color: rgba(255, 255, 255, 0);
             border: 2px solid #682f28;
@@ -97,14 +101,29 @@ class MainWindow(QMainWindow):
 
       self.ui.cbbClasse.clear()
       self.ui.cbbClasse.addItems(class_names)
+
+      self.calcular()
+
     except Exception as e:
       QMessageBox.critical(self, "Erro SQL", f"Erro ao buscar classes:\n{e}")
 
+
+  # TROCA DE CLASSE
+  def _on_classe_changed(self, selected_class):
+    if not selected_class:
+      return
+
+    self.calcular()
+
+  def _on_level_changed(self):
+    self.calcular()
+    
+  # CÁLCULO DE STATS MÉDIOS
   def calcular(self):
     """Lógica para ler os campos da interface e invocar o calculos.py."""
     name = self.ui.cbbPersonagem.currentText()
     job = self.ui.cbbClasse.currentText()
-    level = self.ui.spbLevel.value()  # Assumindo que seu QSpinBox se chama spnLevel
+    level = self.ui.spbLevel.value()
 
     if not name or not job:
       QMessageBox.warning(
@@ -124,15 +143,45 @@ class MainWindow(QMainWindow):
       
       keys = ["HP", "ATK", "SKL", "SPD", "LCK", "DEF", "RES"]
       stats_keys_cap = ["chp", "catk", "cskl", "cspd", "clck", "cdef", "cres"]
-      stat_labels = [self.ui.lblHpInt,self.ui.lblAtkInt,self.ui.lblSklInt,self.ui.lblSpdInt,self.ui.lblLckInt,self.ui.lblDefInt,self.ui.lblResInt]
+      stat_labels = [
+          (self.ui.lblHpInt, self.ui.lblHpDec),
+          (self.ui.lblAtkInt, self.ui.lblAtkDec),
+          (self.ui.lblSklInt, self.ui.lblSklDec),
+          (self.ui.lblSpdInt, self.ui.lblSpdDec),
+          (self.ui.lblLckInt, self.ui.lblLckDec),
+          (self.ui.lblDefInt, self.ui.lblDefDec),
+          (self.ui.lblResInt, self.ui.lblResDec)
+        ]
 
       for idx, key in enumerate(keys):
         stat_str = f"{stats[idx]:.2f}"
         cap = char[stats_keys_cap[idx]]
 
-        lbl_stat = stat_labels[idx]
+        lbl_stat_int, lbl_stat_dec = stat_labels[idx]
 
-        lbl_stat.setText(f"{stat_str}")
+        stat = stat_str.split('.')
+
+        if stats[idx] < cap:
+          lbl_stat_int.setStyleSheet(f"""
+              background-color: rgba(255, 255, 255, 0);
+              color: rgb(255, 255, 255);
+              """)
+          lbl_stat_dec.setStyleSheet(f"""
+              background-color: rgba(255, 255, 255, 0);
+              color: rgb(255, 255, 255);
+              """)
+        else:
+          lbl_stat_int.setStyleSheet(f"""
+              background-color: rgba(255, 255, 255, 0);
+              color: rgb(85, 255, 0);
+              """)
+          lbl_stat_dec.setStyleSheet(f"""
+              background-color: rgba(255, 255, 255, 0);
+              color: rgb(85, 255, 0);
+              """)
+
+        lbl_stat_int.setText(f"{stat[0]}")
+        lbl_stat_dec.setText(f".{stat[1]}")
 
 
 
