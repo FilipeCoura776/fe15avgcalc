@@ -102,6 +102,9 @@ class MainWindow(QMainWindow):
       self.ui.cbbClasse.clear()
       self.ui.cbbClasse.addItems(class_names)
 
+      char = banco.get_char(self.cur, selected_char)
+      self.ui.spbLevel.setValue(char["base_lv"])
+
       self.calcular()
 
     except Exception as e:
