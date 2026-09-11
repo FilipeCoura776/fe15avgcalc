@@ -47,6 +47,10 @@ class MainWindow(QMainWindow):
       self._on_level_changed
     )
 
+    self.ui.chkAuto.checkStateChanged.connect(
+      self._on_auto_checked_changed
+    )
+
     self._load_characters()
 
   def _load_characters(self):
@@ -105,7 +109,8 @@ class MainWindow(QMainWindow):
       char = banco.get_char(self.cur, selected_char)
       self.ui.spbLevel.setValue(char["base_lv"])
 
-      self.calcular()
+      if self.ui.chkAuto.isChecked():
+        self.calcular()
 
     except Exception as e:
       QMessageBox.critical(self, "Erro SQL", f"Erro ao buscar classes:\n{e}")
@@ -116,9 +121,14 @@ class MainWindow(QMainWindow):
     if not selected_class:
       return
 
-    self.calcular()
+    if self.ui.chkAuto.isChecked():
+      self.calcular()
 
   def _on_level_changed(self):
+    if self.ui.chkAuto.isChecked():
+      self.calcular()
+
+  def _on_auto_checked_changed(self):
     self.calcular()
     
   # CÁLCULO DE STATS MÉDIOS
@@ -185,6 +195,8 @@ class MainWindow(QMainWindow):
 
         lbl_stat_int.setText(f"{stat[0]}")
         lbl_stat_dec.setText(f".{stat[1]}")
+
+      self.ui.lbl_nome_avg.setText(name)
 
 
 
